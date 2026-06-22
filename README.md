@@ -1,0 +1,676 @@
+[index.html](https://github.com/user-attachments/files/29187790/index.html)
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#2b3340">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>소화기 월별 점검</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --ink:#16181d; --ink-soft:#5b616e; --line:#e3e5ea; --bg:#f5f6f8;
+    --card:#fff; --safety:#d6262b; --safety-dark:#a81d22;
+    --ok:#1f8a4c; --ok-bg:#e7f5ec; --warn:#b9791a; --warn-bg:#fbf2e0;
+    --bad:#c0392b; --bad-bg:#fbeae8; --na:#7a8290; --na-bg:#eef0f3;
+    --steel:#2b3340; --shadow:0 1px 2px rgba(20,24,29,.06),0 4px 16px rgba(20,24,29,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.5;font-size:15px;
+    padding-bottom:env(safe-area-inset-bottom)}
+  .wrap{max-width:560px;margin:0 auto;min-height:100vh}
+  header{background:var(--steel);color:#fff;padding:14px 18px 16px;position:sticky;top:0;z-index:20;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+  .brand{display:flex;align-items:center;gap:9px;justify-content:space-between}
+  .brand .left{display:flex;align-items:center;gap:9px}
+  .mark{width:26px;height:26px;border-radius:6px;background:var(--safety);display:grid;place-items:center;font-size:15px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+  .brand h1{font-size:16px;margin:0;font-weight:700;letter-spacing:-.2px}
+  .brand small{display:block;font-size:11px;color:#aeb6c2;font-weight:500}
+  .iconbtn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:8px;width:34px;height:34px;font-size:15px;cursor:pointer}
+  .monthbar{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:10px}
+  .mnav{display:flex;align-items:center;gap:6px}
+  .arrow{width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:17px;cursor:pointer}
+  .month-label{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.5px}
+  .month-sub{font-size:11px;color:#aeb6c2;text-align:right;line-height:1.3}
+  .progress{margin-top:13px}
+  .ptrack{height:8px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden}
+  .pfill{height:100%;background:var(--ok);border-radius:99px;transition:width .4s}
+  .pmeta{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:#cdd3db}
+  .pmeta b{color:#fff}
+  main{padding:14px 14px 90px}
+  .sectitle{font-size:12px;font-weight:700;color:var(--ink-soft);letter-spacing:.4px;text-transform:uppercase;margin:6px 4px 10px;display:flex;justify-content:space-between;align-items:center}
+  .loc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;display:flex;gap:12px;align-items:center;transition:transform .08s}
+  .loc:active{transform:scale(.992)}
+  .thumb{width:54px;height:54px;border-radius:10px;flex:none;background:var(--na-bg);background-size:cover;background-position:center;display:grid;place-items:center;color:var(--na);font-size:22px;overflow:hidden;border:1px solid var(--line)}
+  .loc .body{flex:1;min-width:0}
+  .loc .name{font-weight:700;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .loc .place{font-size:12.5px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;margin-top:7px;white-space:nowrap}
+  .b-ok{background:var(--ok-bg);color:var(--ok)}
+  .b-todo{background:var(--bad-bg);color:var(--bad)}
+  .chev{color:var(--na);font-size:20px;flex:none}
+  .empty{text-align:center;padding:46px 20px;color:var(--ink-soft)}
+  .empty .ic{font-size:40px;margin-bottom:10px;opacity:.5}
+  .empty p{margin:0 0 4px;font-weight:600;color:var(--ink)}
+  .empty span{font-size:13px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:inherit;font-size:15px;font-weight:700;border:none;border-radius:11px;padding:13px 16px;cursor:pointer;width:100%}
+  .btn-primary{background:var(--safety);color:#fff}.btn-primary:active{background:var(--safety-dark)}
+  .btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn-ghost:active{background:var(--bg)}
+  .btn-steel{background:var(--steel);color:#fff}
+  .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;max-width:532px;width:calc(100% - 28px);z-index:15;box-shadow:0 6px 20px rgba(214,38,43,.35)}
+  .scrim{position:fixed;inset:0;background:rgba(16,18,22,.5);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--bg);border-radius:20px 20px 0 0;max-width:560px;margin:0 auto;max-height:94vh;overflow:auto;transform:translateY(100%);transition:transform .26s cubic-bezier(.3,.9,.3,1);padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+  .sheet.on{transform:translateY(0)}
+  .sheet-head{position:sticky;top:0;background:var(--bg);padding:8px 16px 10px;z-index:2;border-bottom:1px solid var(--line)}
+  .grab{width:38px;height:4px;border-radius:99px;background:#cfd3da;margin:0 auto 10px}
+  .sheet-head .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .sheet-head h2{font-size:17px;margin:0;font-weight:800}
+  .sheet-head .sub{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+  .sheet-head .x{font-size:15px;color:var(--ink-soft);background:none;border:none;font-weight:700;cursor:pointer;padding:6px}
+  .sheet-body{padding:16px}
+  label.fld{display:block;margin-bottom:14px}
+  label.fld .lab{font-size:13px;font-weight:700;margin-bottom:6px;display:block}
+  .req{color:var(--safety)}
+  input[type=text],input[type=password],textarea,select{width:100%;font-family:inherit;font-size:15px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 13px;outline:none}
+  input:focus,textarea:focus,select:focus{border-color:var(--steel)}
+  textarea{resize:vertical;min-height:62px}
+  .check{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
+  .citem{padding:11px 13px;border-bottom:1px solid var(--line)}.citem:last-child{border-bottom:none}
+  .citem .ctop{font-size:13.5px;font-weight:600;margin-bottom:8px}
+  .citem .ctop .hint{display:block;font-size:11.5px;color:var(--ink-soft);font-weight:400;margin-top:1px}
+  .seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .seg button{font-family:inherit;font-size:12.5px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--ink-soft);border-radius:8px;padding:8px 4px;cursor:pointer}
+  .seg button.sel-ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+  .seg button.sel-bad{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
+  .seg button.sel-na{background:var(--na-bg);border-color:var(--na);color:var(--na)}
+  .photo-zone{border:1.5px dashed var(--line);border-radius:12px;padding:18px;text-align:center;background:#fff;cursor:pointer;margin-bottom:6px}
+  .photo-zone .ic{font-size:30px}.photo-zone .t{font-weight:700;margin-top:6px;font-size:14px}
+  .photo-zone .s{font-size:12px;color:var(--ink-soft);margin-top:2px}
+  .photo-prev{position:relative;border-radius:12px;overflow:hidden;margin-bottom:6px;border:1px solid var(--line)}
+  .photo-prev img{display:block;width:100%}
+  .photo-prev .retake{position:absolute;top:8px;right:8px;background:rgba(16,18,22,.72);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:12.5px;font-weight:700;cursor:pointer}
+  .recmeta{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:14px}
+  .recrow{display:flex;justify-content:space-between;padding:6px 0;font-size:13.5px;border-bottom:1px solid var(--line)}.recrow:last-child{border-bottom:none}
+  .recrow .k{color:var(--ink-soft)}.recrow .v{font-weight:600;text-align:right}
+  .res-pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px}
+  .tools{display:flex;gap:8px;margin-bottom:12px}
+  .tools .btn{padding:11px;font-size:13.5px}
+  .toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--steel);color:#fff;font-size:13.5px;font-weight:600;padding:11px 18px;border-radius:99px;z-index:60;opacity:0;transition:.25s;box-shadow:0 6px 18px rgba(0,0,0,.25);white-space:nowrap;max-width:90%}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .danger-link{color:var(--bad);font-weight:700;font-size:13px;background:none;border:none;cursor:pointer;padding:4px}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:70;display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px}
+  .lightbox.on{display:flex}
+  .lightbox img{max-width:100%;max-height:80vh;border-radius:8px}
+  .lightbox .lbclose{position:absolute;top:14px;right:16px;color:#fff;font-size:26px;background:none;border:none;cursor:pointer}
+  .lightbox .lbcap{color:#fff;font-size:13px;margin-top:12px;text-align:center}
+  /* login */
+  .gate{position:fixed;inset:0;background:linear-gradient(160deg,#2b3340,#171b22);z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px}
+  .gate .card{width:100%;max-width:340px;text-align:center;color:#fff}
+  .gate .logo{width:60px;height:60px;border-radius:16px;background:var(--safety);display:grid;place-items:center;font-size:32px;margin:0 auto 16px;box-shadow:0 8px 28px rgba(214,38,43,.4)}
+  .gate h2{margin:0 0 4px;font-size:21px;font-weight:800}
+  .gate p{margin:0 0 22px;font-size:13px;color:#9aa3b0}
+  .gate input{text-align:center;font-size:18px;letter-spacing:2px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);color:#fff;margin-bottom:12px}
+  .gate input::placeholder{color:#6b7280;letter-spacing:1px}
+  .gate .err{color:#ff8a8a;font-size:13px;font-weight:600;height:18px;margin-bottom:6px}
+  .gate .keep{display:flex;align-items:center;gap:8px;justify-content:center;color:#aeb6c2;font-size:13px;margin:-2px 0 14px;cursor:pointer;user-select:none}
+  .gate .keep input{width:16px;height:16px;accent-color:#d6262b;margin:0}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  /* QR grid */
+  .qrgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .qrcell{border:1px solid var(--line);border-radius:10px;padding:12px 10px;text-align:center;background:#fff;break-inside:avoid;page-break-inside:avoid}
+  .qrcell .qimg{display:flex;justify-content:center;margin-bottom:7px}
+  .qrcell .qno{font-weight:800;font-size:14px;word-break:break-all}
+  .qrcell .qpl{font-size:11px;color:var(--ink-soft);margin-top:2px}
+  /* print view */
+  #printView{position:fixed;inset:0;background:#fff;z-index:80;overflow:auto;display:none}
+  #printView.on{display:block}
+  .pv-bar{position:sticky;top:0;background:var(--steel);color:#fff;padding:10px 14px;display:flex;gap:8px;justify-content:space-between;align-items:center;z-index:2}
+  .pv-bar button{font-family:inherit;font-weight:700;border:none;border-radius:8px;padding:9px 14px;cursor:pointer;font-size:14px}
+  .pv-doc{max-width:800px;margin:0 auto;padding:22px 20px 60px;color:#16181d}
+  .pv-h1{font-size:22px;font-weight:800;margin:0 0 2px}
+  .pv-meta{font-size:12.5px;color:#5b616e;margin-bottom:4px}
+  .pv-summary{display:flex;gap:22px;border:1px solid #e3e5ea;border-radius:10px;padding:12px 16px;margin:14px 0 16px;font-size:13px}
+  .pv-summary b{font-size:18px;display:block;margin-top:2px}
+  .pv-entry{display:flex;gap:14px;border:1px solid #e3e5ea;border-radius:12px;padding:12px;margin-bottom:12px;break-inside:avoid;page-break-inside:avoid}
+  .pv-entry .pp{width:148px;flex:none}
+  .pv-entry .pp img{width:148px;height:110px;object-fit:contain;background:#f1f2f4;border-radius:8px;border:1px solid #e3e5ea;display:block}
+  .pv-entry .no-photo{width:148px;height:110px;display:grid;place-items:center;background:#fbeae8;color:#c0392b;font-weight:800;border-radius:8px;font-size:13px}
+  .pv-entry .info{flex:1;min-width:0}
+  .pv-entry .info h3{margin:0 0 2px;font-size:16px}
+  .pv-entry .info .pl{font-size:12.5px;color:#5b616e;margin-bottom:8px}
+  .pv-kv{font-size:12.5px;margin:2px 0}
+  .pv-chips{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px}
+  .pv-chip{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:99px;background:#e7f5ec;color:#1f8a4c}
+  .pv-chip.bad{background:#fbeae8;color:#c0392b}
+  .pv-chip.na{background:#eef0f3;color:#7a8290}
+  .pv-sign{margin-top:26px;display:flex;gap:40px;font-size:13px}
+  .pv-sign .s{flex:1;border-top:1px solid #16181d;padding-top:6px}
+  @media print{
+    @page{size:A4;margin:12mm}
+    body{background:#fff}
+    body>*{display:none!important}
+    #printView{display:block!important;position:static!important;overflow:visible!important}
+    .pv-bar,.noprint{display:none!important}
+    .pv-doc{max-width:none;padding:0}
+    .pv-entry,.qrcell{page-break-inside:avoid}
+    .qrgrid{grid-template-columns:repeat(3,1fr)}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div class="gate" id="gate">
+  <div class="card">
+    <div class="logo">🧯</div>
+    <h2>소화기 월별 점검</h2>
+    <p>관리번호별 사진 증빙 관리대장</p>
+    <div class="err" id="gateErr"></div>
+    <input type="password" id="gatePass" inputmode="text" placeholder="공용 비밀번호" autocomplete="off">
+    <label class="keep"><input type="checkbox" id="keepLogin" checked> 로그인 유지 <span style="opacity:.7">(공용 기기는 해제)</span></label>
+    <button class="btn btn-primary" id="gateBtn">입장</button>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <header>
+    <div class="brand">
+      <div class="left">
+        <div class="mark">🧯</div>
+        <div><h1>소화기 월별 점검</h1><small>관리번호별 사진 증빙 관리대장</small></div>
+      </div>
+      <button class="iconbtn" id="btnLogout" title="잠금">🔒</button>
+    </div>
+    <div class="monthbar">
+      <div class="mnav">
+        <button class="arrow" id="prevM">‹</button>
+        <span class="month-label" id="monthLabel">2026.06</span>
+        <button class="arrow" id="nextM">›</button>
+      </div>
+      <div class="month-sub" id="monthSub"></div>
+    </div>
+    <div class="progress">
+      <div class="ptrack"><div class="pfill" id="pfill" style="width:0%"></div></div>
+      <div class="pmeta"><span>이번 달 점검 현황</span><span><b id="pdone">0</b> / <span id="ptotal">0</span> 완료</span></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="tools">
+      <button class="btn btn-ghost" id="btnExcel">📊 엑셀</button>
+      <button class="btn btn-ghost" id="btnReport">📄 보고서</button>
+      <button class="btn btn-ghost" id="btnManage">⚙ 관리</button>
+    </div>
+    <div class="sectitle"><span>소화기 목록</span><span id="locCount"></span></div>
+    <div id="locList"></div>
+  </main>
+
+  <button class="btn btn-primary fab" id="fabAdd">＋ 소화기 추가</button>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-head"><div class="grab"></div>
+    <div class="row"><div><h2 id="shTitle">제목</h2><div class="sub" id="shSub"></div></div>
+    <button class="x" id="shClose">닫기</button></div></div>
+  <div class="sheet-body" id="shBody"></div>
+</div>
+
+<!-- full-page print/PDF view (report + QR labels) -->
+<div id="printView">
+  <div class="pv-bar">
+    <button onclick="closePrint()" style="background:rgba(255,255,255,.12);color:#fff">← 닫기</button>
+    <button onclick="window.print()" style="background:#d6262b;color:#fff">📄 PDF로 저장 / 인쇄</button>
+  </div>
+  <div class="pv-doc" id="pvDoc"></div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lbclose" id="lbClose">×</button>
+  <img id="lbImg" alt=""><div class="lbcap" id="lbCap"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "https://ywbvxhwqgpliuccdzici.supabase.co/functions/v1/fe-api";
+let PASS = localStorage.getItem('fe_pass') || sessionStorage.getItem('fe_pass') || '';
+let LOCATIONS = [], LOCMAP = {}, MONTHMAP = {};
+let curYM = ymOf(new Date());
+const params = new URLSearchParams(location.search);
+let pendingLoc = params.get('loc');   // deep-link target from QR scan
+
+function ymOf(d){ return d.getFullYear()*100 + (d.getMonth()+1); }
+function ymLabel(ym){ const y=Math.floor(ym/100), m=ym%100; return `${y}.${String(m).padStart(2,'0')}`; }
+function shiftYM(ym,delta){ let y=Math.floor(ym/100), m=ym%100-1+delta; y+=Math.floor(m/12); m=((m%12)+12)%12; return y*100+(m+1); }
+function nowStamp(){ const d=new Date(),p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function nice(iso){ if(!iso)return''; const d=new Date(iso),p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function appBase(){ return localStorage.getItem('fe_appbase') || (location.origin + location.pathname); }
+function persistPass(pass, keep){
+  if(keep){ localStorage.setItem('fe_pass',pass); sessionStorage.removeItem('fe_pass'); }
+  else { sessionStorage.setItem('fe_pass',pass); localStorage.removeItem('fe_pass'); }
+}
+function clearPass(){ localStorage.removeItem('fe_pass'); sessionStorage.removeItem('fe_pass'); }
+
+const CHECK_ITEMS = [
+  {id:'gauge', t:'압력게이지 정상', hint:'지침이 녹색(정상) 범위에 위치'},
+  {id:'pin',   t:'안전핀·봉인 상태', hint:'안전핀 고정, 봉인 미파손'},
+  {id:'body',  t:'본체 외관', hint:'부식·변형·손상 없음'},
+  {id:'hose',  t:'호스·노즐 상태', hint:'균열·막힘·이탈 없음'},
+  {id:'label', t:'표시·명판 식별', hint:'제조일·사용법·중량 식별 가능'},
+  {id:'place', t:'설치위치·접근성', hint:'지정위치, 통로 미점유, 표지 양호'},
+  {id:'weight',t:'중량·약제 상태', hint:'분말 굳음 없음, 중량 정상'},
+];
+const CHIP_DEFS = [['gauge','게이지'],['pin','안전핀'],['body','본체'],['hose','호스'],['label','명판'],['place','위치'],['weight','약제']];
+
+/* ---------- API ---------- */
+async function api(action, extra={}){
+  const r = await fetch(API,{ method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action, passcode:PASS, ...extra }) });
+  let j={}; try{ j=await r.json(); }catch(e){}
+  if(r.status===429){ const e=new Error('too_many'); e.tooMany=true; e.retry=j.retry_after; throw e; }
+  if(r.status===401){ const e=new Error('unauthorized'); e.unauthorized=true; e.remaining=j.remaining; throw e; }
+  if(!r.ok || j.error){ throw new Error(j.error||('HTTP '+r.status)); }
+  return j;
+}
+
+/* ---------- login ---------- */
+async function tryLogin(pass, keep){
+  const errEl=document.getElementById('gateErr'), btn=document.getElementById('gateBtn');
+  errEl.textContent=''; btn.innerHTML='<span class="spin"></span>'; PASS=pass;
+  try{
+    const j=await api('bootstrap');
+    if(keep!==undefined) persistPass(pass, keep);
+    LOCATIONS=j.locations||[]; rebuildLocMap();
+    document.getElementById('gate').style.display='none';
+    document.getElementById('app').style.display='block';
+    await loadMonth();
+    if(pendingLoc && LOCMAP[pendingLoc]){ const l=LOCMAP[pendingLoc]; pendingLoc=null;
+      try{ history.replaceState({}, '', location.pathname); }catch(e){}
+      setTimeout(()=>openInspect(l),300); }
+  }catch(e){
+    PASS=''; clearPass();
+    if(e.tooMany){ errEl.textContent=`시도가 많습니다. 약 ${Math.ceil((e.retry||600)/60)}분 후 다시 시도하세요`; }
+    else if(e.unauthorized){ errEl.textContent='비밀번호가 올바르지 않습니다'+(e.remaining!=null?` (남은 시도 ${e.remaining}회)`:''); }
+    else { errEl.textContent='연결 오류: 다시 시도하세요'; }
+  }finally{ btn.textContent='입장'; }
+}
+function rebuildLocMap(){ LOCMAP={}; LOCATIONS.forEach(l=>LOCMAP[l.id]=l); }
+async function refreshLocations(){ const j=await api('bootstrap'); LOCATIONS=j.locations||[]; rebuildLocMap(); }
+
+/* ---------- month load + render ---------- */
+async function loadMonth(){
+  try{
+    const j=await api('inspections.list',{ym:curYM});
+    MONTHMAP={};
+    for(const r of j.inspections){ if(!MONTHMAP[r.location_id]) MONTHMAP[r.location_id]=r; }
+    render();
+  }catch(e){ toast('불러오기 실패: '+e.message); }
+}
+function render(){
+  document.getElementById('monthLabel').textContent=ymLabel(curYM);
+  const isThis=curYM===ymOf(new Date());
+  document.getElementById('monthSub').innerHTML=isThis?'이번 달<br>점검 대상':'지난 기록<br>조회 중';
+  document.getElementById('locCount').textContent=LOCATIONS.length?`총 ${LOCATIONS.length}개`:'';
+  const list=document.getElementById('locList');
+  if(LOCATIONS.length===0){
+    list.innerHTML=`<div class="empty"><div class="ic">🧯</div><p>등록된 소화기가 없습니다</p><span>아래 버튼으로 첫 소화기를 추가하세요</span></div>`;
+    setProgress(0,0); return;
+  }
+  list.innerHTML=''; let done=0;
+  for(const loc of LOCATIONS){
+    const rec=MONTHMAP[loc.id]; if(rec)done++;
+    const ph=rec&&rec.photo_url;
+    const el=document.createElement('div'); el.className='loc'; el.onclick=()=>openInspect(loc);
+    el.innerHTML=`
+      <div class="thumb" ${ph?`style="background-image:url('${ph}')"`:''}>${ph?'':'🧯'}</div>
+      <div class="body"><div class="name">${esc(loc.name)}</div>
+      <div class="place">${esc(loc.place||'설치 위치 미입력')}</div>
+      ${rec?`<span class="badge b-ok">✓ 점검완료 · ${nice(rec.inspected_at).slice(5,16)}</span>`
+           :`<span class="badge b-todo">● 미점검</span>`}</div>
+      <div class="chev">›</div>`;
+    list.appendChild(el);
+  }
+  setProgress(done,LOCATIONS.length);
+}
+function setProgress(done,total){
+  document.getElementById('pdone').textContent=done;
+  document.getElementById('ptotal').textContent=total;
+  document.getElementById('pfill').style.width=(total?Math.round(done/total*100):0)+'%';
+}
+
+/* ---------- inspect ---------- */
+function openInspect(loc){ const rec=MONTHMAP[loc.id]; if(rec) showRecord(loc,rec); else showForm(loc); }
+function showRecord(loc,rec){
+  setSheet(loc.name,`${ymLabel(curYM)} 점검 기록`);
+  const rows=CHECK_ITEMS.map(it=>{ const v=(rec.checklist||{})[it.id]||'na';
+    const col=v==='ok'?'var(--ok)':v==='bad'?'var(--bad)':'var(--na)';
+    const bg=v==='ok'?'var(--ok-bg)':v==='bad'?'var(--bad-bg)':'var(--na-bg)';
+    const txt=v==='ok'?'양호':v==='bad'?'불량':'해당없음';
+    return `<div class="recrow"><span class="k">${it.t}</span><span class="res-pill" style="color:${col};background:${bg}">${txt}</span></div>`;
+  }).join('');
+  const anyBad=Object.values(rec.checklist||{}).some(v=>v==='bad');
+  document.getElementById('shBody').innerHTML=`
+    ${rec.photo_url?`<div class="photo-prev" onclick="lb('${rec.photo_url}','${esc(loc.name)}')"><img src="${rec.photo_url}"></div>`:''}
+    <div class="recmeta">
+      <div class="recrow"><span class="k">점검일시</span><span class="v">${nice(rec.inspected_at)}</span></div>
+      <div class="recrow"><span class="k">점검자</span><span class="v">${esc(rec.inspector||'-')}</span></div>
+      <div class="recrow"><span class="k">종합판정</span><span class="v" style="color:${anyBad?'var(--bad)':'var(--ok)'}">${anyBad?'⚠ 불량항목 있음':'✓ 정상'}</span></div>
+    </div>
+    <div class="check">${rows}</div>
+    ${rec.note?`<div class="recmeta"><div class="recrow"><span class="k">비고</span></div><div style="font-size:14px;white-space:pre-wrap">${esc(rec.note)}</div></div>`:''}
+    <button class="btn btn-ghost" style="margin-bottom:10px" onclick="reInspect('${loc.id}')">✎ 재점검 / 추가 기록</button>
+    <div style="text-align:center"><button class="danger-link" onclick="delRecord('${rec.id}')">이 점검 기록 삭제</button></div>`;
+  openSheet();
+}
+
+let draft=null, formLoc=null;
+function showForm(loc){
+  formLoc=loc;
+  draft={ checklist:Object.fromEntries(CHECK_ITEMS.map(i=>[i.id,'ok'])), inspector:lastInspector(), note:'', photoData:null };
+  setSheet(loc.name,`${ymLabel(curYM)} 점검 등록`);
+  const checkHtml=CHECK_ITEMS.map(it=>`
+    <div class="citem"><div class="ctop">${it.t}<span class="hint">${it.hint}</span></div>
+      <div class="seg" data-id="${it.id}">
+        <button data-v="ok">양호</button><button data-v="bad">불량</button><button data-v="na">해당없음</button>
+      </div></div>`).join('');
+  document.getElementById('shBody').innerHTML=`
+    <div id="photoSlot"></div>
+    <input type="file" id="camIn" accept="image/*" capture="environment" style="display:none">
+    <div class="sectitle" style="margin:14px 4px 8px">점검 항목</div>
+    <div class="check">${checkHtml}</div>
+    <label class="fld"><span class="lab">점검자 <span class="req">*</span></span>
+      <input type="text" id="fInspector" placeholder="이름 입력" value="${esc(draft.inspector)}"></label>
+    <label class="fld"><span class="lab">비고 / 조치사항</span>
+      <textarea id="fNote" placeholder="불량 발견 시 조치내용 등"></textarea></label>
+    <button class="btn btn-primary" id="saveBtn">점검 기록 저장</button>`;
+  renderPhotoSlot();
+  document.querySelectorAll('.seg').forEach(seg=>{ const id=seg.dataset.id;
+    const paint=()=>seg.querySelectorAll('button').forEach(b=>{const v=b.dataset.v,on=draft.checklist[id]===v;
+      b.className=on?(v==='ok'?'sel-ok':v==='bad'?'sel-bad':'sel-na'):'';});
+    seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{draft.checklist[id]=b.dataset.v;paint();}); paint(); });
+  document.getElementById('camIn').onchange=onPhoto;
+  document.getElementById('saveBtn').onclick=()=>saveRecord(loc);
+  openSheet();
+}
+function lastInspector(){ return localStorage.getItem('fe_inspector')||''; }
+function renderPhotoSlot(){
+  const slot=document.getElementById('photoSlot');
+  if(draft.photoData){
+    slot.innerHTML=`<div class="photo-prev"><img src="${draft.photoData}">
+      <button class="retake" onclick="document.getElementById('camIn').click()">다시 촬영</button></div>
+      <div style="font-size:11.5px;color:var(--ink-soft);text-align:center">사진에 관리번호·일시·점검자가 자동 기록됩니다</div>`;
+  }else{
+    slot.innerHTML=`<div class="photo-zone" onclick="document.getElementById('camIn').click()">
+      <div class="ic">📷</div><div class="t">현장 사진 촬영 / 첨부 <span class="req">*</span></div>
+      <div class="s">관리번호·일시·점검자가 사진에 새겨집니다</div></div>`;
+  }
+}
+function onPhoto(e){
+  const file=e.target.files&&e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{ const img=new Image();
+    img.onload=()=>{ const max=1200; let w=img.width,h=img.height;
+      const sc=Math.min(1,max/Math.max(w,h)); w=Math.round(w*sc); h=Math.round(h*sc);
+      const c=document.createElement('canvas'); c.width=w;c.height=h;
+      const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+      const fs=Math.max(13,Math.round(w*0.032)), pad=Math.round(fs*0.7);
+      const lines=[ formLoc.name, `점검일시 ${nowStamp()}`,
+        `점검자 ${(document.getElementById('fInspector').value||lastInspector()||'-')}` ];
+      const barH=pad*2+lines.length*(fs*1.32);
+      const grad=ctx.createLinearGradient(0,h-barH-30,0,h);
+      grad.addColorStop(0,'rgba(0,0,0,0)');grad.addColorStop(.35,'rgba(0,0,0,.55)');grad.addColorStop(1,'rgba(0,0,0,.82)');
+      ctx.fillStyle=grad; ctx.fillRect(0,h-barH-30,w,barH+30);
+      ctx.fillStyle='#d6262b'; ctx.fillRect(pad,h-barH+pad*0.3,Math.round(fs*0.34),lines.length*(fs*1.32)-fs*0.3);
+      ctx.textBaseline='top'; let y=h-barH+pad*0.3;
+      lines.forEach((ln,i)=>{ ctx.font=`${i===0?700:500} ${i===0?fs*1.05:fs*0.86}px -apple-system,'Malgun Gothic',sans-serif`;
+        ctx.fillStyle=i===0?'#fff':'rgba(255,255,255,.92)'; ctx.fillText(ln,pad*1.9,y);
+        y+=(i===0?fs*1.4:fs*1.22); });
+      draft.photoData=c.toDataURL('image/jpeg',0.7); renderPhotoSlot();
+    }; img.src=ev.target.result; };
+  reader.readAsDataURL(file);
+}
+async function saveRecord(loc){
+  const inspector=document.getElementById('fInspector').value.trim();
+  if(!draft.photoData){ toast('현장 사진을 촬영/첨부해 주세요'); return; }
+  if(!inspector){ toast('점검자 이름을 입력해 주세요'); return; }
+  const note=document.getElementById('fNote').value.trim();
+  const result=Object.values(draft.checklist).some(v=>v==='bad')?'bad':'ok';
+  const btn=document.getElementById('saveBtn'); btn.innerHTML='<span class="spin"></span>'; btn.disabled=true;
+  try{
+    await api('inspections.add',{ location_id:loc.id, ym:curYM, inspector,
+      checklist:draft.checklist, result, note, photo_base64:draft.photoData });
+    localStorage.setItem('fe_inspector',inspector);
+    closeSheet(); toast('✓ 점검 기록이 저장되었습니다'); await loadMonth();
+  }catch(e){ toast('저장 실패: '+e.message); btn.textContent='점검 기록 저장'; btn.disabled=false; }
+}
+window.reInspect=(locId)=>{ closeSheet(); setTimeout(()=>showForm(LOCMAP[locId]),120); };
+window.delRecord=(id)=>{ if(!confirm('이 점검 기록과 사진을 삭제할까요?'))return;
+  api('inspections.delete',{id}).then(()=>{ closeSheet(); toast('삭제했습니다'); loadMonth(); })
+   .catch(e=>toast('삭제 실패: '+e.message)); };
+
+/* ---------- manage + QR + admin ---------- */
+function openManage(){
+  setSheet('관리','소화기 추가·삭제, QR 라벨, 관리자 설정');
+  const items=LOCATIONS.map(l=>`
+    <div class="loc" style="cursor:default"><div class="thumb">🧯</div>
+      <div class="body"><div class="name">${esc(l.name)}</div>
+      <div class="place">${esc(l.place||'-')}${l.ext_type?' · '+esc(l.ext_type):''}</div></div>
+      <button class="danger-link" onclick="delLoc('${l.id}')">삭제</button></div>`).join('')
+    || `<div class="empty"><p>등록된 소화기가 없습니다</p></div>`;
+  document.getElementById('shBody').innerHTML=`
+    <div class="sectitle" style="margin:0 4px 8px">소화기 목록</div>
+    <div style="margin-bottom:12px">${items}</div>
+    <button class="btn btn-ghost" style="margin-bottom:18px" onclick="openQR()">🔳 QR 라벨 만들기 / 인쇄</button>
+    <div class="sectitle" style="margin:0 4px 8px">새 소화기 추가</div>
+    <label class="fld"><span class="lab">관리번호 <span class="req">*</span></span>
+      <input type="text" id="nName" placeholder="예: FE-1F-001"></label>
+    <label class="fld"><span class="lab">상세 설치위치</span>
+      <input type="text" id="nPlace" placeholder="예: 1공장 A동 출입문 좌측 기둥"></label>
+    <label class="fld"><span class="lab">소화기 종류</span>
+      <select id="nType">
+        <option>분말 ABC</option><option>이산화탄소(CO₂)</option><option>청정소화약제</option>
+        <option>강화액</option><option>자동확산소화기</option><option>기타</option>
+      </select></label>
+    <button class="btn btn-primary" onclick="addLoc(this)">＋ 소화기 추가</button>
+    <div class="sectitle" style="margin:22px 4px 8px">관리자</div>
+    <button class="btn btn-ghost" onclick="changePass()">🔑 공용 비밀번호 변경</button>`;
+  openSheet();
+}
+window.addLoc=async(btn)=>{
+  const name=document.getElementById('nName').value.trim();
+  if(!name){ toast('관리번호를 입력하세요'); return; }
+  btn.innerHTML='<span class="spin"></span>'; btn.disabled=true;
+  try{ await api('locations.add',{ name, place:document.getElementById('nPlace').value.trim(),
+      ext_type:document.getElementById('nType').value });
+    await refreshLocations(); toast('소화기를 추가했습니다'); openManage(); render();
+  }catch(e){ toast('추가 실패: '+e.message); btn.textContent='＋ 소화기 추가'; btn.disabled=false; }
+};
+window.delLoc=(id)=>{ if(!confirm('이 소화기를 삭제하면 모든 월 점검기록·사진도 함께 삭제됩니다. 계속할까요?'))return;
+  api('locations.delete',{id}).then(async()=>{ await refreshLocations(); toast('삭제했습니다'); openManage(); loadMonth(); })
+   .catch(e=>toast('삭제 실패: '+e.message)); };
+window.changePass=async()=>{
+  const np=prompt('새 공용 비밀번호 (4자 이상):'); if(np==null)return;
+  if(np.trim().length<4){ toast('4자 이상 입력하세요'); return; }
+  try{ await api('changePasscode',{newPasscode:np.trim()});
+    PASS=np.trim(); persistPass(PASS, !!localStorage.getItem('fe_pass')); toast('비밀번호가 변경되었습니다');
+  }catch(e){ toast('변경 실패: '+e.message); }
+};
+
+/* ---------- QR labels ---------- */
+window.openQR=()=>{
+  closeSheet();
+  const doc=document.getElementById('pvDoc'), base=appBase();
+  if(LOCATIONS.length===0){ doc.innerHTML='<div style="padding:34px;text-align:center;color:#5b616e">등록된 소화기가 없습니다.<br>먼저 소화기를 추가하세요.</div>'; openPrintView(); return; }
+  let cells='';
+  LOCATIONS.forEach((l,i)=>{ cells+=`<div class="qrcell"><div class="qimg" id="qr_${i}"></div>
+    <div class="qno">${esc(l.name)}</div><div class="qpl">${esc(l.place||'')}</div></div>`; });
+  doc.innerHTML=`
+    <div class="pv-h1">🔳 소화기 QR 라벨</div>
+    <div class="pv-meta">소화기에 부착하세요. 스캔하면 해당 소화기의 점검 화면이 바로 열립니다.</div>
+    <div class="noprint" style="border:1px solid #e3e5ea;border-radius:10px;padding:12px;margin:14px 0">
+      <div style="font-size:12.5px;font-weight:700;margin-bottom:6px">앱 주소 (이 주소로 QR이 만들어집니다)</div>
+      <input type="text" id="qrBase" value="${esc(base)}" style="margin-bottom:8px">
+      <button class="btn btn-steel" style="padding:9px" onclick="regenQR()">QR 다시 생성</button>
+      <p style="font-size:11.5px;color:#5b616e;margin:8px 0 0">⚠ 배포 전이면 임시 주소일 수 있어요. Vercel 배포 후 실제 주소(https://...vercel.app)를 넣고 다시 생성하세요.</p>
+    </div>
+    <div class="qrgrid">${cells}</div>`;
+  openPrintView();
+  renderQRCodes(base);
+};
+function renderQRCodes(base){
+  LOCATIONS.forEach((l,i)=>{ const el=document.getElementById('qr_'+i); if(!el)return; el.innerHTML='';
+    const text = base + (base.includes('?')?'&':'?') + 'loc=' + l.id;
+    try{ new QRCode(el,{ text, width:120, height:120, correctLevel:QRCode.CorrectLevel.M }); }catch(e){}
+  });
+}
+window.regenQR=()=>{ const v=document.getElementById('qrBase').value.trim()||(location.origin+location.pathname);
+  localStorage.setItem('fe_appbase',v); renderQRCodes(v); toast('QR을 다시 생성했습니다'); };
+
+/* ---------- monthly report → full-page A4 PDF ---------- */
+window.openReport=async()=>{
+  const doc=document.getElementById('pvDoc');
+  doc.innerHTML='<div style="padding:44px;text-align:center"><span class="spin" style="border-color:#ccc;border-top-color:#444"></span></div>';
+  openPrintView();
+  let j; try{ j=await api('inspections.list',{ym:curYM}); }
+  catch(e){ doc.innerHTML='<div style="padding:30px">불러오기 실패: '+esc(e.message)+'</div>'; return; }
+  const map={}; for(const r of j.inspections){ if(!map[r.location_id]) map[r.location_id]=r; }
+  let done=0; const badList=[]; let entries='';
+  for(const loc of LOCATIONS){
+    const rec=map[loc.id]; if(rec)done++;
+    const c=rec?(rec.checklist||{}):{};
+    const anyBad=rec&&Object.values(c).some(v=>v==='bad'); if(anyBad)badList.push(loc.name);
+    const chips=rec?CHIP_DEFS.map(([k,lab])=>{const v=c[k]||'na';const cl=v==='bad'?' bad':v==='na'?' na':'';return `<span class="pv-chip${cl}">${lab} ${v==='bad'?'✕':v==='na'?'-':'✓'}</span>`;}).join(''):'';
+    entries+=`<div class="pv-entry">
+      <div class="pp">${rec&&rec.photo_url?`<img src="${rec.photo_url}">`:`<div class="no-photo">미점검</div>`}</div>
+      <div class="info">
+        <h3>${esc(loc.name)}</h3>
+        <div class="pl">${esc(loc.place||'설치위치 미입력')}${loc.ext_type?' · '+esc(loc.ext_type):''}</div>
+        ${rec?`
+          <div class="pv-kv">점검일시 : ${nice(rec.inspected_at)}</div>
+          <div class="pv-kv">점검자 : ${esc(rec.inspector||'-')}</div>
+          <div class="pv-kv">종합판정 : <b style="color:${anyBad?'#c0392b':'#1f8a4c'}">${anyBad?'불량 항목 있음':'정상'}</b></div>
+          ${rec.note?`<div class="pv-kv">비고 : ${esc(rec.note)}</div>`:''}
+          <div class="pv-chips">${chips}</div>`
+          :`<div class="pv-kv" style="color:#c0392b;font-weight:700;margin-top:6px">이 달 점검 기록 없음</div>`}
+      </div></div>`;
+  }
+  const total=LOCATIONS.length;
+  doc.innerHTML=`
+    <div class="pv-h1">🧯 소화기 월별 점검 관리대장</div>
+    <div class="pv-meta">대상 월 : <b>${ymLabel(curYM)}</b> &nbsp;|&nbsp; 출력일 : ${nowStamp()}</div>
+    <div class="pv-summary">
+      <div>대상 소화기<b>${total} 대</b></div>
+      <div>점검완료<b style="color:#1f8a4c">${done} 대</b></div>
+      <div>미점검<b style="color:${total-done?'#c0392b':'#1f8a4c'}">${total-done} 대</b></div>
+      <div>불량 발생<b style="color:${badList.length?'#c0392b':'#1f8a4c'}">${badList.length} 대</b></div>
+    </div>
+    ${badList.length?`<div style="font-size:12px;color:#c0392b;margin:-6px 0 14px">⚠ 불량/조치 필요 : ${badList.map(esc).join(', ')}</div>`:''}
+    ${entries}
+    <div class="pv-sign"><div class="s">점검자 (서명)</div><div class="s">점검책임자 / 확인자 (서명)</div></div>`;
+};
+function openPrintView(){ document.getElementById('printView').classList.add('on'); document.getElementById('printView').scrollTop=0; }
+function closePrint(){ document.getElementById('printView').classList.remove('on'); }
+window.closePrint=closePrint;
+
+/* ---------- Excel export with embedded photos ---------- */
+function openExcel(){
+  setSheet('엑셀 내보내기','점검내역 + 사진 썸네일 포함 (.xlsx)');
+  document.getElementById('shBody').innerHTML=`
+    <div class="recmeta" style="font-size:13px;color:var(--ink-soft)">
+      한 줄에 한 점검 기록이 들어가며, 마지막 열에 점검 사진이 셀 안에 포함됩니다.</div>
+    <button class="btn btn-primary" style="margin-bottom:10px" onclick="exportExcel(${curYM})">📊 이번 달 (${ymLabel(curYM)}) 내보내기</button>
+    <button class="btn btn-ghost" onclick="exportExcel(0)">📚 전체 기간 내보내기</button>
+    <div id="xlStatus" style="text-align:center;font-size:13px;color:var(--ink-soft);margin-top:12px"></div>`;
+  openSheet();
+}
+window.exportExcel=async(ym)=>{
+  const st=document.getElementById('xlStatus'); st.innerHTML='<span class="spin"></span> 데이터 불러오는 중...';
+  try{
+    const j=await api('inspections.list', ym?{ym}:{});
+    const rows=j.inspections;
+    if(!rows.length){ st.textContent='해당 기간에 점검 기록이 없습니다'; return; }
+    if(LOCATIONS.length===0) await refreshLocations();
+    const wb=new ExcelJS.Workbook(); const ws=wb.addWorksheet('점검대장',{views:[{state:'frozen',ySplit:1}]});
+    ws.columns=[
+      {header:'관리번호',key:'name',width:18},{header:'상세위치',key:'place',width:24},
+      {header:'점검년월',key:'ym',width:10},{header:'점검일시',key:'at',width:18},{header:'점검자',key:'insp',width:9},
+      {header:'압력게이지',key:'gauge',width:10},{header:'안전핀봉인',key:'pin',width:10},{header:'본체외관',key:'body',width:9},
+      {header:'호스노즐',key:'hose',width:9},{header:'표시명판',key:'label',width:9},{header:'설치위치',key:'place2',width:9},
+      {header:'중량약제',key:'weight',width:9},{header:'종합판정',key:'result',width:10},{header:'비고',key:'note',width:24},
+      {header:'점검사진',key:'photo',width:16},
+    ];
+    const hr=ws.getRow(1); hr.font={bold:true,color:{argb:'FFFFFFFF'}}; hr.height=22;
+    hr.alignment={vertical:'middle',horizontal:'center'};
+    hr.eachCell(c=>{ c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2B3340'}};
+      c.border={bottom:{style:'thin',color:{argb:'FFCCCCCC'}}}; });
+    const mv=v=>v==='ok'?'양호':v==='bad'?'불량':v==='na'?'해당없음':'';
+    let excelRow=2;
+    for(const row of rows){
+      const loc=LOCMAP[row.location_id]||{}; const c=row.checklist||{};
+      const dr=ws.addRow({ name:loc.name||'', place:loc.place||'', ym:ymLabel(row.ym),
+        at:nice(row.inspected_at), insp:row.inspector||'',
+        gauge:mv(c.gauge),pin:mv(c.pin),body:mv(c.body),hose:mv(c.hose),label:mv(c.label),place2:mv(c.place),weight:mv(c.weight),
+        result:row.result==='bad'?'불량':'정상', note:row.note||'', photo:'' });
+      dr.height=64; dr.alignment={vertical:'middle',wrapText:true};
+      dr.eachCell(c2=>{ c2.border={bottom:{style:'hair',color:{argb:'FFE3E5EA'}}}; });
+      if(row.result==='bad') dr.getCell('result').font={color:{argb:'FFC0392B'},bold:true};
+      ['gauge','pin','body','hose','label','place2','weight'].forEach(k=>{
+        if(dr.getCell(k).value==='불량') dr.getCell(k).font={color:{argb:'FFC0392B'},bold:true};
+        dr.getCell(k).alignment={vertical:'middle',horizontal:'center'};
+      });
+      if(row.photo_url){
+        st.innerHTML=`<span class="spin"></span> 사진 처리 중... (${excelRow-1}/${rows.length})`;
+        try{ const resp=await fetch(row.photo_url); const blob=await resp.blob();
+          const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(blob);});
+          const id=wb.addImage({base64:dataUrl,extension:'jpeg'});
+          ws.addImage(id,{ tl:{col:14.12,row:(excelRow-1)+0.12}, ext:{width:78,height:58} });
+        }catch(e){}
+      }
+      excelRow++;
+    }
+    st.innerHTML='<span class="spin"></span> 파일 생성 중...';
+    const out=await wb.xlsx.writeBuffer();
+    const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=`소화기점검_${ym?ymLabel(ym).replace('.','-'):'전체기간'}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    st.textContent=`✓ ${rows.length}건 내보내기 완료`;
+  }catch(e){ st.textContent='내보내기 실패: '+e.message; }
+};
+
+/* ---------- lightbox & sheet ---------- */
+window.lb=(url,cap)=>{ document.getElementById('lbImg').src=url;
+  document.getElementById('lbCap').textContent=cap||''; document.getElementById('lightbox').classList.add('on'); };
+function setSheet(t,s){ document.getElementById('shTitle').textContent=t; document.getElementById('shSub').textContent=s||''; }
+function openSheet(){ document.getElementById('scrim').classList.add('on'); document.getElementById('sheet').classList.add('on'); }
+function closeSheet(){ document.getElementById('scrim').classList.remove('on'); document.getElementById('sheet').classList.remove('on'); }
+let toastT; function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2400); }
+
+/* ---------- bindings ---------- */
+document.getElementById('gateBtn').onclick=()=>{ const v=document.getElementById('gatePass').value.trim(); if(v)tryLogin(v,document.getElementById('keepLogin').checked); };
+document.getElementById('gatePass').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const v=e.target.value.trim(); if(v)tryLogin(v,document.getElementById('keepLogin').checked); }});
+document.getElementById('prevM').onclick=()=>{curYM=shiftYM(curYM,-1);loadMonth();};
+document.getElementById('nextM').onclick=()=>{curYM=shiftYM(curYM,1);loadMonth();};
+document.getElementById('fabAdd').onclick=openManage;
+document.getElementById('btnManage').onclick=openManage;
+document.getElementById('btnReport').onclick=()=>openReport();
+document.getElementById('btnExcel').onclick=openExcel;
+document.getElementById('shClose').onclick=closeSheet;
+document.getElementById('scrim').onclick=closeSheet;
+document.getElementById('lbClose').onclick=()=>document.getElementById('lightbox').classList.remove('on');
+document.getElementById('lightbox').onclick=e=>{ if(e.target.id==='lightbox')document.getElementById('lightbox').classList.remove('on'); };
+document.getElementById('btnLogout').onclick=()=>{ clearPass(); location.reload(); };
+
+if(PASS){ tryLogin(PASS); }
+</script>
+</body>
+</html>
