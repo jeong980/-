@@ -119,6 +119,15 @@
   .gate .keep input{width:16px;height:16px;accent-color:#d6262b;margin:0}
   .spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
+  /* done / completion screen */
+  #doneView{position:fixed;inset:0;background:linear-gradient(160deg,#1f8a4c,#14663a);z-index:95;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;color:#fff}
+  #doneView.on{display:flex}
+  #doneView .done-card{width:100%;max-width:340px}
+  #doneView .done-ic{width:84px;height:84px;border-radius:50%;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:44px;margin:0 auto 18px;border:2px solid rgba(255,255,255,.5)}
+  #doneView h2{font-size:24px;font-weight:800;margin:0 0 10px}
+  #doneView .done-no{font-size:18px;font-weight:700;margin-bottom:4px;word-break:break-all}
+  #doneView .done-meta{font-size:13px;color:#d7ecdf;margin-bottom:8px}
+  #doneView .done-hint{font-size:12.5px;color:#bfe0cc;margin-bottom:24px}
   /* QR grid */
   .qrgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
   .qrcell{border:1px solid var(--line);border-radius:10px;padding:12px 10px;text-align:center;background:#fff;break-inside:avoid;page-break-inside:avoid}
@@ -232,6 +241,17 @@
 <div class="lightbox" id="lightbox">
   <button class="lbclose" id="lbClose">×</button>
   <img id="lbImg" alt=""><div class="lbcap" id="lbCap"></div>
+</div>
+<div id="doneView">
+  <div class="done-card">
+    <div class="done-ic">✓</div>
+    <h2>점검 완료</h2>
+    <div class="done-no" id="doneNo"></div>
+    <div class="done-meta" id="doneMeta"></div>
+    <div class="done-hint">다음 소화기의 QR을 스캔하면 바로 이어집니다</div>
+    <button class="btn" style="background:#fff;color:#16181d;margin-bottom:10px" onclick="tryCloseTab()">창 닫기</button>
+    <button class="btn" style="background:rgba(255,255,255,.16);color:#fff" onclick="closeDone()">목록으로</button>
+  </div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -447,9 +467,18 @@ async function saveRecord(loc){
     await api('inspections.add',{ location_id:loc.id, ym:curYM, inspector,
       checklist:draft.checklist, result, note, photo_base64:draft.photoData });
     localStorage.setItem('fe_inspector',inspector);
-    closeSheet(); toast('✓ 점검 기록이 저장되었습니다'); await loadMonth();
+    closeSheet(); await loadMonth(); showDone(loc.name, inspector);
   }catch(e){ toast('저장 실패: '+e.message); btn.textContent='점검 기록 저장'; btn.disabled=false; }
 }
+function showDone(no, inspector){
+  document.getElementById('doneNo').textContent=no;
+  document.getElementById('doneMeta').textContent=`${nowStamp()} · 점검자 ${inspector}`;
+  document.getElementById('doneView').classList.add('on');
+  setTimeout(()=>{ try{ window.close(); }catch(e){} }, 500);   // auto-close if the browser allows it
+}
+window.closeDone=()=>{ document.getElementById('doneView').classList.remove('on'); };
+window.tryCloseTab=()=>{ try{ window.close(); }catch(e){}
+  setTimeout(()=>toast('이 브라우저는 자동으로 닫을 수 없어요. 탭을 직접 닫아주세요'),300); };
 window.reInspect=(locId)=>{ closeSheet(); setTimeout(()=>showForm(LOCMAP[locId]),120); };
 window.delRecord=(id)=>{ if(!confirm('이 점검 기록과 사진을 삭제할까요?'))return;
   api('inspections.delete',{id}).then(()=>{ closeSheet(); toast('삭제했습니다'); loadMonth(); })
