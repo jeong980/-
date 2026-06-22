@@ -248,7 +248,7 @@
     <h2>점검 완료</h2>
     <div class="done-no" id="doneNo"></div>
     <div class="done-meta" id="doneMeta"></div>
-    <div class="done-hint">다음 소화기의 QR을 스캔하면 바로 이어집니다</div>
+    <div class="done-hint" id="doneHint">다음 소화기의 QR을 스캔하면 바로 이어집니다</div>
     <button class="btn" style="background:#fff;color:#16181d;margin-bottom:10px" onclick="tryCloseTab()">창 닫기</button>
     <button class="btn" style="background:rgba(255,255,255,.16);color:#fff" onclick="closeDone()">목록으로</button>
   </div>
@@ -470,14 +470,26 @@ async function saveRecord(loc){
     closeSheet(); await loadMonth(); showDone(loc.name, inspector);
   }catch(e){ toast('저장 실패: '+e.message); btn.textContent='점검 기록 저장'; btn.disabled=false; }
 }
+let doneTimer=null, doneCount=0;
 function showDone(no, inspector){
   document.getElementById('doneNo').textContent=no;
   document.getElementById('doneMeta').textContent=`${nowStamp()} · 점검자 ${inspector}`;
   document.getElementById('doneView').classList.add('on');
-  setTimeout(()=>{ try{ window.close(); }catch(e){} }, 500);   // auto-close if the browser allows it
+  const hint=document.getElementById('doneHint');
+  doneCount=5;
+  const paint=()=>{ hint.textContent=`다음 QR 스캔 시 바로 이어집니다 · ${doneCount}초 후 목록으로`; };
+  paint();
+  clearDoneTimer();
+  doneTimer=setInterval(()=>{
+    doneCount--;
+    if(doneCount<=0){ clearDoneTimer(); try{ window.close(); }catch(e){} finishDone(); }
+    else paint();
+  },1000);
 }
-window.closeDone=()=>{ document.getElementById('doneView').classList.remove('on'); };
-window.tryCloseTab=()=>{ try{ window.close(); }catch(e){}
+function clearDoneTimer(){ if(doneTimer){ clearInterval(doneTimer); doneTimer=null; } }
+function finishDone(){ document.getElementById('doneView').classList.remove('on'); }
+window.closeDone=()=>{ clearDoneTimer(); finishDone(); };
+window.tryCloseTab=()=>{ clearDoneTimer(); try{ window.close(); }catch(e){}
   setTimeout(()=>toast('이 브라우저는 자동으로 닫을 수 없어요. 탭을 직접 닫아주세요'),300); };
 window.reInspect=(locId)=>{ closeSheet(); setTimeout(()=>showForm(LOCMAP[locId]),120); };
 window.delRecord=(id)=>{ if(!confirm('이 점검 기록과 사진을 삭제할까요?'))return;
