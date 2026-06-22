@@ -503,7 +503,10 @@ function openManage(){
     <div class="loc" style="cursor:default"><div class="thumb">🧯</div>
       <div class="body"><div class="name">${esc(l.name)}</div>
       <div class="place">${esc(l.place||'-')}${l.ext_type?' · '+esc(l.ext_type):''}</div></div>
-      <button class="danger-link" onclick="delLoc('${l.id}')">삭제</button></div>`).join('')
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;flex:none">
+        <button class="danger-link" style="color:var(--steel)" onclick="openEditLoc('${l.id}')">수정</button>
+        <button class="danger-link" onclick="delLoc('${l.id}')">삭제</button>
+      </div></div>`).join('')
     || `<div class="empty"><p>등록된 소화기가 없습니다</p></div>`;
   document.getElementById('shBody').innerHTML=`
     <div class="sectitle" style="margin:0 4px 8px">소화기 목록</div>
@@ -536,6 +539,31 @@ window.addLoc=async(btn)=>{
 window.delLoc=(id)=>{ if(!confirm('이 소화기를 삭제하면 모든 월 점검기록·사진도 함께 삭제됩니다. 계속할까요?'))return;
   api('locations.delete',{id}).then(async()=>{ await refreshLocations(); toast('삭제했습니다'); openManage(); loadMonth(); })
    .catch(e=>toast('삭제 실패: '+e.message)); };
+window.openEditLoc=(id)=>{
+  const l=LOCMAP[id]; if(!l)return;
+  setSheet('소화기 수정', l.name);
+  const types=['분말 ABC','이산화탄소(CO₂)','청정소화약제','강화액','자동확산소화기','기타'];
+  const opts=types.map(t=>`<option ${l.ext_type===t?'selected':''}>${t}</option>`).join('');
+  document.getElementById('shBody').innerHTML=`
+    <label class="fld"><span class="lab">관리번호 <span class="req">*</span></span>
+      <input type="text" id="eName" value="${esc(l.name)}"></label>
+    <label class="fld"><span class="lab">상세 설치위치</span>
+      <input type="text" id="ePlace" value="${esc(l.place||'')}" placeholder="예: 1공장 A동 출입문 좌측 기둥"></label>
+    <label class="fld"><span class="lab">소화기 종류</span>
+      <select id="eType">${opts}</select></label>
+    <button class="btn btn-primary" style="margin-bottom:10px" onclick="saveEditLoc('${id}',this)">저장</button>
+    <button class="btn btn-ghost" onclick="openManage()">취소</button>`;
+  openSheet();
+};
+window.saveEditLoc=async(id,btn)=>{
+  const name=document.getElementById('eName').value.trim();
+  if(!name){ toast('관리번호를 입력하세요'); return; }
+  btn.innerHTML='<span class="spin"></span>'; btn.disabled=true;
+  try{ await api('locations.update',{ id, name, place:document.getElementById('ePlace').value.trim(),
+      ext_type:document.getElementById('eType').value });
+    await refreshLocations(); toast('수정했습니다'); openManage(); render();
+  }catch(e){ toast('수정 실패: '+e.message); btn.textContent='저장'; btn.disabled=false; }
+};
 window.changePass=async()=>{
   const np=prompt('새 공용 비밀번호 (4자 이상):'); if(np==null)return;
   if(np.trim().length<4){ toast('4자 이상 입력하세요'); return; }
