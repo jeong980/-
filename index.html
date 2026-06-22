@@ -321,7 +321,7 @@ async function tryLogin(pass, keep){
     else { errEl.textContent='연결 오류: 다시 시도하세요'; }
   }finally{ btn.textContent='입장'; }
 }
-function rebuildLocMap(){ LOCMAP={}; LOCATIONS.forEach(l=>LOCMAP[l.id]=l); }
+function rebuildLocMap(){ LOCATIONS.sort((a,b)=>(a.name||'').localeCompare((b.name||''),'ko',{numeric:true,sensitivity:'base'})); LOCMAP={}; LOCATIONS.forEach(l=>LOCMAP[l.id]=l); }
 async function refreshLocations(){ const j=await api('bootstrap'); LOCATIONS=j.locations||[]; rebuildLocMap(); }
 
 /* ---------- month load + render ---------- */
@@ -638,21 +638,27 @@ window.exportExcel=async(ym)=>{
     const rows=j.inspections;
     if(!rows.length){ st.textContent='해당 기간에 점검 기록이 없습니다'; return; }
     if(LOCATIONS.length===0) await refreshLocations();
-    const wb=new ExcelJS.Workbook(); const ws=wb.addWorksheet('점검대장',{views:[{state:'frozen',ySplit:1}]});
-    ws.columns=[
-      {header:'관리번호',key:'name',width:18},{header:'상세위치',key:'place',width:24},
-      {header:'점검년월',key:'ym',width:10},{header:'점검일시',key:'at',width:18},{header:'점검자',key:'insp',width:9},
-      {header:'압력게이지',key:'gauge',width:10},{header:'안전핀봉인',key:'pin',width:10},{header:'본체외관',key:'body',width:9},
-      {header:'호스노즐',key:'hose',width:9},{header:'표시명판',key:'label',width:9},{header:'설치위치',key:'place2',width:9},
-      {header:'중량약제',key:'weight',width:9},{header:'종합판정',key:'result',width:10},{header:'비고',key:'note',width:24},
-      {header:'점검사진',key:'photo',width:16},
+    const wb=new ExcelJS.Workbook(); const ws=wb.addWorksheet('점검대장',{views:[{state:'frozen',ySplit:2}]});
+    const COLS=[
+      {key:'name',width:18},{key:'place',width:24},{key:'ym',width:10},{key:'at',width:18},{key:'insp',width:9},
+      {key:'gauge',width:10},{key:'pin',width:10},{key:'body',width:9},{key:'hose',width:9},{key:'label',width:9},
+      {key:'place2',width:9},{key:'weight',width:9},{key:'result',width:10},{key:'note',width:24},{key:'photo',width:16},
     ];
-    const hr=ws.getRow(1); hr.font={bold:true,color:{argb:'FFFFFFFF'}}; hr.height=22;
+    ws.columns=COLS;
+    // title row
+    const title = ym ? `소화기 ${Math.floor(ym/100)}년 ${ym%100}월 점검 기록` : '소화기 전체기간 점검 기록';
+    ws.mergeCells(1,1,1,COLS.length);
+    const tcell=ws.getCell(1,1); tcell.value=title;
+    tcell.font={bold:true,size:14,color:{argb:'FF16181D'}}; tcell.alignment={vertical:'middle',horizontal:'left'};
+    ws.getRow(1).height=30;
+    // header row (row 2)
+    const HEAD={name:'관리번호',place:'상세위치',ym:'점검년월',at:'점검일시',insp:'점검자',gauge:'압력게이지',pin:'안전핀봉인',body:'본체외관',hose:'호스노즐',label:'표시명판',place2:'설치위치',weight:'중량약제',result:'종합판정',note:'비고',photo:'점검사진'};
+    const hr=ws.addRow(HEAD); hr.font={bold:true,color:{argb:'FFFFFFFF'}}; hr.height=22;
     hr.alignment={vertical:'middle',horizontal:'center'};
     hr.eachCell(c=>{ c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2B3340'}};
       c.border={bottom:{style:'thin',color:{argb:'FFCCCCCC'}}}; });
     const mv=v=>v==='ok'?'양호':v==='bad'?'불량':v==='na'?'해당없음':'';
-    let excelRow=2;
+    let excelRow=3;
     for(const row of rows){
       const loc=LOCMAP[row.location_id]||{}; const c=row.checklist||{};
       const dr=ws.addRow({ name:loc.name||'', place:loc.place||'', ym:ymLabel(row.ym),
